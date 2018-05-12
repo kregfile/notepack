@@ -1,5 +1,7 @@
 'use strict';
 
+var utf8 = require('./utf8');
+
 function Decoder(buffer) {
   this.offset = 0;
   if (buffer instanceof ArrayBuffer) {
@@ -11,47 +13,6 @@ function Decoder(buffer) {
   } else {
     throw new Error('Invalid argument');
   }
-}
-
-function utf8Read(view, offset, length) {
-  var string = '', chr = 0;
-  for (var i = offset, end = offset + length; i < end; i++) {
-    var byte = view.getUint8(i);
-    if ((byte & 0x80) === 0x00) {
-      string += String.fromCharCode(byte);
-      continue;
-    }
-    if ((byte & 0xe0) === 0xc0) {
-      string += String.fromCharCode(
-        ((byte & 0x1f) << 6) |
-        (view.getUint8(++i) & 0x3f)
-      );
-      continue;
-    }
-    if ((byte & 0xf0) === 0xe0) {
-      string += String.fromCharCode(
-        ((byte & 0x0f) << 12) |
-        ((view.getUint8(++i) & 0x3f) << 6) |
-        ((view.getUint8(++i) & 0x3f) << 0)
-      );
-      continue;
-    }
-    if ((byte & 0xf8) === 0xf0) {
-      chr = ((byte & 0x07) << 18) |
-        ((view.getUint8(++i) & 0x3f) << 12) |
-        ((view.getUint8(++i) & 0x3f) << 6) |
-        ((view.getUint8(++i) & 0x3f) << 0);
-      if (chr >= 0x010000) { // surrogate pair
-        chr -= 0x010000;
-        string += String.fromCharCode((chr >>> 10) + 0xD800, (chr & 0x3FF) + 0xDC00);
-      } else {
-        string += String.fromCharCode(chr);
-      }
-      continue;
-    }
-    throw new Error('Invalid byte ' + byte.toString(16));
-  }
-  return string;
 }
 
 Decoder.prototype.array = function (length) {
@@ -72,7 +33,7 @@ Decoder.prototype.map = function (length) {
 };
 
 Decoder.prototype.str = function (length) {
-  var value = utf8Read(this.view, this.offset, length);
+  var value = utf8.read(this.view, this.offset, length);
   this.offset += length;
   return value;
 };

@@ -1,58 +1,12 @@
 'use strict';
 
-function utf8Write(view, offset, str) {
-  var c = 0;
-  for (var i = 0, l = str.length; i < l; i++) {
-    c = str.charCodeAt(i);
-    if (c < 0x80) {
-      view.setUint8(offset++, c);
-    }
-    else if (c < 0x800) {
-      view.setUint8(offset++, 0xc0 | (c >> 6));
-      view.setUint8(offset++, 0x80 | (c & 0x3f));
-    }
-    else if (c < 0xd800 || c >= 0xe000) {
-      view.setUint8(offset++, 0xe0 | (c >> 12));
-      view.setUint8(offset++, 0x80 | (c >> 6) & 0x3f);
-      view.setUint8(offset++, 0x80 | (c & 0x3f));
-    }
-    else {
-      i++;
-      c = 0x10000 + (((c & 0x3ff) << 10) | (str.charCodeAt(i) & 0x3ff));
-      view.setUint8(offset++, 0xf0 | (c >> 18));
-      view.setUint8(offset++, 0x80 | (c >> 12) & 0x3f);
-      view.setUint8(offset++, 0x80 | (c >> 6) & 0x3f);
-      view.setUint8(offset++, 0x80 | (c & 0x3f));
-    }
-  }
-}
-
-function utf8Length(str) {
-  var c = 0, length = 0;
-  for (var i = 0, l = str.length; i < l; i++) {
-    c = str.charCodeAt(i);
-    if (c < 0x80) {
-      length += 1;
-    }
-    else if (c < 0x800) {
-      length += 2;
-    }
-    else if (c < 0xd800 || c >= 0xe000) {
-      length += 3;
-    }
-    else {
-      i++;
-      length += 4;
-    }
-  }
-  return length;
-}
+var utf8 = require('./utf8');
 
 function _encode(bytes, defers, value) {
   var type = typeof value, i = 0, l = 0, hi = 0, lo = 0, length = 0, size = 0;
 
   if (type === 'string') {
-    length = utf8Length(value);
+    length = utf8.length(value);
 
     // fixstr
     if (length < 0x20) {
@@ -289,7 +243,7 @@ function encode(value) {
         view.setUint8(offset + j, bin[j]);
       }
     } else if (defer.str) {
-      utf8Write(view, offset, defer.str);
+      utf8.write(view, offset, defer.str);
     } else if (defer.float !== undefined) {
       view.setFloat64(offset, defer.float);
     }
